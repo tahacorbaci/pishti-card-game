@@ -1,0 +1,221 @@
+<div id="signDiv">
+    <span style="font-size: 120px;">Username: </span><input id="signDiv-username" type="text" style="font-size:120px;" maxlength="10">
+    <button id="signDiv-signIn" style="font-size:120px;">OK</button>
+</div>
+
+<div id="gameDiv" style="display:none;">
+	<canvas id="ctx" width="1080" height="1920" style="border:1px solid #000000; background-color: #236C09;"></canvas>
+</div>
+	
+<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+<script>
+	var socket = io();
+	
+	var name;
+	var signed = false;
+	
+	// sign
+	var signDiv = document.getElementById('signDiv');
+    var signDivUsername = document.getElementById('signDiv-username');
+    var signDivSignIn = document.getElementById('signDiv-signIn');
+	var connected = false;
+	
+	signDivSignIn.onclick = function() {
+		name = signDivUsername.value;
+		signDivUsername.value = "";
+		if(name != "") {
+			socket.emit('signIn', {name:name});
+			signDiv.style.display = 'none';
+			gameDiv.style.display = 'inline-block';
+			update();
+			signed = true;
+		}
+	}
+	
+	socket.on('connectionDenied', function() {
+		connected = true;
+	});
+	
+	// game
+	var canvas	= document.getElementById("ctx");
+	var ctx		= canvas.getContext("2d");
+	ctx.font = '120px Arial';
+	
+	var stepSize = 270;
+	var card_images = {};
+	
+	for(var i = 0; i < 52; i++) {
+		var img = new Image();
+		img.src = "static/"+i+".png";
+		card_images[i] = img;
+	}
+	
+	var WIDTH = 1080;
+	var HEIGHT = 1920;
+	var cardLeft = 0;
+	var dialogOn = false;
+	var selected;
+	var score = 0;
+	var turn = false;
+	var canPlay = false;
+	
+	var cards = {};
+	var dialog;
+	
+	update = function() {	
+		var count = 0;
+		ctx.clearRect(0, 0, WIDTH, HEIGHT);
+		var offset = (WIDTH - stepSize*(cardLeft-1))/2;
+		var count = 0;
+		for(var i in cards) {
+			cards[i].draw(count++*stepSize + offset, 3*HEIGHT/7);
+		}				
+		ctx.save();
+		ctx.font = '90px Arial';
+		ctx.fillStyle = 'white';
+		ctx.fillText(name, 55, 110);
+		ctx.textAlign = "end"; 
+		ctx.fillText("Score: "+score, WIDTH-25, 110);
+		ctx.restore();
+		if(turn)
+			ctx.fillText('Your Turn', 260, 400);
+		if(connected)
+			ctx.fillText("Table is full", 220, 700);
+	}
+	
+	Card = function(id,num) {
+		var self = {
+			id:id,
+			x:0,
+			y:0,
+			width:0,
+			height:0,
+			num:num
+		};
+		self.clicked = function() {
+			selected = self;
+			dialog = Dialog('Sure?');
+			dialog.draw(WIDTH/2, HEIGHT/2);
+			dialogOn = true;
+		};
+		self.draw = function(x, y) {
+			var ratio = 380/255;
+			self.width = 210;
+			self.height = self.width * ratio;
+			self.x = x-self.width/2;
+			self.y = y-self.height/2;
+			console.log("id:"+self.id);
+			ctx.drawImage(card_images[self.id], self.x, self.y, self.width, self.height);
+		};
+		self.clickAction = function(x, y) {
+			if(!dialogOn
+			&& x > self.x 
+			&& x < self.x+self.width 
+			&& y > self.y 
+			&& y < self.y+self.height
+			&& turn
+			&& canPlay)
+				self.clicked();
+		};
+		cards[id] = self;
+	}
+	
+	Button = function(type) {
+		var self = {
+			type:type,
+			x:0,
+			y:0,
+			width:0,
+			height:0
+		};
+		self.clicked = function() {
+			if(self.type == 'yes') {
+				if(--cardLeft == 0)
+					canPlay = false;
+				socket.emit('clicked',{id:selected.id, left:cardLeft});
+				turn = false;
+				delete cards[selected.id];
+			}
+			delete dialog;
+			dialogOn = false;
+			selected = undefined;
+			update();
+		};
+		self.draw = function(x, y) {
+			self.width = 270;
+			self.height = 150;
+			self.x = x-self.width/2;
+			self.y = y-self.height/2;
+			ctx.fillStyle = (self.type != 'yes'?'#E91515':"#A1E631");
+			ctx.fillRect(self.x, self.y, self.width, self.height);
+			ctx.fillStyle = 'black';
+			ctx.fillText(self.type, x-(self.type == 'yes'?95:65), y+30);
+		};
+		self.clickAction = function(x, y) {
+			if(x > self.x 
+			&& x < self.x+self.width 
+			&& y > self.y 
+			&& y < self.y+self.height
+			&& dialogOn)
+				self.clicked();
+			};
+		return self;
+	}
+	
+	Dialog = function(q) {
+		var self = {
+			q:q,
+			x:0,
+			y:0,
+			width:0,
+			height:0
+		};
+		self.yes = Button('yes');
+		self.no = Button('no');
+		self.draw = function(x, y) {
+			dialogOn = true;
+			self.width = 800;
+			self.height = 800;
+			self.x = x-self.width/2;
+			self.y = y-self.height/2;
+			ctx.fillStyle = '#3DE99C'
+			ctx.fillRect(self.x, self.y, self.width, self.height);
+			ctx.fillStyle = 'black';
+			ctx.fillText(q, x-170, y-150); //text
+			self.yes.draw(x-200, y+150);
+			self.no.draw(x+200, y+150);
+		};
+		self.clickAction = function(x, y) {
+			dialog.yes.clickAction(x, y);
+			dialog.no.clickAction(x, y);
+		};
+		return self;
+	}
+	
+	socket.on('newScore', function(data) {
+		score = data.score;
+		update();
+	});
+	
+	socket.on('new', function(data) {
+		Card(data.id, cardLeft++);
+		if(cardLeft == 4)
+			canPlay = true;
+		update();
+	});
+	
+	// when it's my turn
+	socket.on('turn', function() {
+		turn = true;
+		update();
+	});
+	
+	canvas.onclick = function(e) {
+		var mouseX = e.offsetX;
+		var mouseY = e.offsetY;
+		for(var i in cards)
+			cards[i].clickAction(mouseX, mouseY);
+		if(dialogOn)
+			dialog.clickAction(mouseX, mouseY);
+	};
+</script>
