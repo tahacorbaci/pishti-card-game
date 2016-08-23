@@ -1,0 +1,2 @@
+# pisti
+Arçelik Card Game
