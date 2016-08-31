@@ -1,0 +1,54 @@
+<html>
+  <head></head>
+ 
+    <script>
+      window.addEventListener('DOMContentLoaded', function(){domContentLoaded()});
+    
+
+    var domContentLoaded = function(){
+        if(typeof(arSmartTV) === "undefined")
+            window.location.href = "zeynep"
+        else
+            arSmartTV.init(function(){initSuccess()},function(){initFail()});
+    }
+
+    var initSuccess = function(){
+		var url = window.location.href.replace('launcher','table');
+		console.log(url);
+        arSmartTV.startAppWithConfig({
+            app_name: "ARCELIK_PORTAL",
+            app_type: "web",
+            app_id: 169,
+            dev_name: "pisti",
+            app_logo: "",
+            app_url: url,
+            user_agent: "",
+            app_mode: "overlay",
+            use_vka: false,
+            use_mouse: false,
+            use_video: true,
+            use_audio: true,
+            has_border: false,
+            kiosk_mode: false,
+            allow_close_window: true,
+            disable_web_security: true,
+            enable_loading_animation: true,
+            height: 1080,
+            width: 1920,
+            dtv_video: {
+                visible: true,
+                x_pos: 0,
+                y_pos: 0,
+                width: 640,
+                height: 360
+            }
+        });
+    }
+
+    var initFail = function(){
+        window.location.href = "zeynep"
+    }
+</script>
+ <body>
+	</body>
+</html>

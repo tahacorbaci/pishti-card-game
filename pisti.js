@@ -14,6 +14,11 @@ app.get('/hand',function(req,res){
     pathname = url.parse(req.url).pathname; // pathname = '/MyApp' 
 });
  
+app.get('/launcher',function(req,res){ 
+    res.sendFile(__dirname+'/client/launcher.html');
+    pathname = url.parse(req.url).pathname; // pathname = '/MyApp'  
+});
+
 app.get('/table',function(req,res){ 
     res.sendFile(__dirname+'/client/zeynep.html');
     pathname = url.parse(req.url).pathname; // pathname = '/MyApp'  
