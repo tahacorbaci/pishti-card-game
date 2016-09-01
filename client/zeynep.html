@@ -148,6 +148,7 @@
 			if(p.id == 0 || p.id == 2) {
 				ctx.fillStyle="orange";
 				ctx.save();
+				ctx2.save();
 				if(p.id == 0){
 					ctx.translate(-WIDTH/2,HEIGHT/2);
 				}
@@ -158,14 +159,19 @@
 				ctx.textAlign = "center";
 				ctx.fillText(p.name, p.x + nameXoffset[p.id] , p.y + nameYoffset[p.id]);
 				ctx2.fillText(p.name, 400, (p.id+2)*50+50);
+				ctx2.fillStyle="orange";
 				ctx2.fillText(score[p.id], 650, (p.id+2)*50+50);
 				ctx.restore();
+				ctx2.restore();
 			}
-			else{
+			else if(p.id == 1 || p.id == 3){
 				ctx.fillStyle="orange";
+				ctx2.save();
 				ctx.fillText(p.name, p.x + nameXoffset[p.id], p.y + nameYoffset[p.id]);
 				ctx2.fillText(p.name, 400, (p.id+2)*50+50);
+				ctx2.fillStyle="orange";
 				ctx2.fillText(score[p.id], 650, (p.id+2)*50+50);
+				ctx2.restore();
 
 //				ctx.fillText(p.name+" score:"+score[p.id], p.x + nameXoffset[p.id], p.y + nameYoffset[p.id]);
 			}
@@ -177,6 +183,7 @@
 
 	refresh = function() {
 		ctx.clearRect(0, 0, WIDTH, HEIGHT);
+		ctx2.clearRect(0, 0, WIDTH, HEIGHT/2);
 		ctx2.fillText("SCORE LIST", 400, 100);
 
 		var ratio  = 255/380;
