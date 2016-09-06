@@ -94,6 +94,12 @@ var i=0;
 var j=0;
 var io = require('socket.io')(serv,{});
 io.sockets.on('connection',function(socket){    
+
+		socket.on ('player move', function (msg) {
+		io.sockets.emit ('updateCard', msg);
+		});	
+
+	
      
     if((i<4)&&(pathname=="/hand")&&(start!=true)){   
         var k=0;
@@ -128,6 +134,8 @@ io.sockets.on('connection',function(socket){
             i--;            
             updatePlayers();            
         });
+		
+		
              
     }else if((j<4)&&(pathname=="/table")){   
         var k=0;
@@ -179,6 +187,8 @@ io.sockets.on('connection',function(socket){
                     }
             });
         }
+		
+		
      
         socket.on('disconnect',function(){                          
             console.log("tv "+player.id+" Ç "+table[player.id]+':b');
@@ -195,5 +205,7 @@ io.sockets.on('connection',function(socket){
         console.log("Masa dolu.");
         socket.emit('connectionDenied', {});
     }
+	
+	
      
 });
