@@ -6,9 +6,6 @@ var serv = require('http').Server(app);
 app.use('/static',express.static(__dirname+'/client/img/final'));   
 var pathname;
  
-var keypress = require('keypress');
-keypress(process.stdin);
- 
 app.get('/hand',function(req,res){  
     res.sendFile(__dirname+'/client/mustafa.html');
     pathname = url.parse(req.url).pathname; // pathname = '/MyApp' 
@@ -70,28 +67,21 @@ updatePlayers=function(){
     }
 }
  
- 
-/*
-//keypress function
-process.stdin.on('keypress', function(ch, key) {
-    if (key.name == 'c') {
-        var cardId= Math.floor(Math.random() * 52);
-        for ( var i in TV_SOCKET_LIST){ 
-            socket = TV_SOCKET_LIST[i];
-            socket.emit('cardPlayed',{id:cardId});          
-        }           
-    }
-});
-*/
- 
 var turnId;
 var start;
 var card;
-var pId;
 var tour;
  
 var i=0;
 var j=0;
+
+var startTimer = false;
+var BotGame = false;
+var TPlayerGame = false;
+var FPlayerGame = false;
+var playerNum = 4;
+
+
 var io = require('socket.io')(serv,{});
 io.sockets.on('connection',function(socket){    
 
@@ -101,7 +91,19 @@ io.sockets.on('connection',function(socket){
 
 	
      
-    if((i<4)&&(pathname=="/hand")&&(start!=true)){   
+    if((i<playerNum)&&(pathname=="/hand")&&(start!=true)){ 
+        if(startTimer == false){
+            startTimer = true;
+            var startgame = true;
+            setTimeout(function(){
+                io.sockets.emit('timeEnd', startgame );
+                console.log('pnumber is' + pack.length);
+                io.sockets.emit('playerNum', {p:pack.length});
+                console.log('send');
+            }, 10000); 
+        }
+        
+  
         var k=0;
         while(hand[k]!='b')
             k++;
@@ -109,11 +111,11 @@ io.sockets.on('connection',function(socket){
         socket.id=k;    
         PHONE_SOCKET_LIST[socket.id]= socket;
         var player = Player(socket.id); 
-         
+
         socket.on('signIn',  function(data) {
             player.name = data.name;    
             PLAYER_LIST[socket.id] = player;
-            updatePlayers();        
+            updatePlayers();   
         });
         socket.on('clicked',function(data){
             for (var m in TV_SOCKET_LIST){
@@ -137,7 +139,22 @@ io.sockets.on('connection',function(socket){
 		
 		
              
-    }else if((j<4)&&(pathname=="/table")){   
+    }else if((j<playerNum)&&(pathname=="/table")){   
+         socket.on('GameSettings', function(data){
+            BotGame = data.bot;
+            if(BotGame == true)
+                playerNum = 1;
+            TPlayerGame = data.twop;
+            if(TPlayerGame == true)
+                playerNum = 2;
+            FPlayerGame = data.fourp;
+            if(FPlayerGame == true)
+                playerNum = 4;
+            console.log('playerNum selected'+ playerNum );
+            io.sockets.emit('playerNum', {p:playerNum});
+        })
+
+        
         var k=0;
         while(table[k]!='b')
             k++;

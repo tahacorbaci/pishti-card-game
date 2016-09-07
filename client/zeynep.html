@@ -1,6 +1,12 @@
+<script src = "static/socket.io-1.4.5.js"></script>
 
-	<script src = "static/socket.io-1.4.5.js"></script>
-<div id="bg">
+<div id="GameSettings">
+	<span style="font-size: 60px;">Game Length: </span><input id="GameSettings-Input" type="text" style="font-size:60px;" maxlength="2">
+	<button id="GameSettings-botGame" style="font-size:60px;">Bot Game</button>
+	<button id="GameSettings-2Players" style="font-size:60px;">2 Players</button>
+	<button id="GameSettings-4Players" style="font-size:60px;">4 Players</button>
+</div>
+<div id="bg" style="display:none;">
 	<div id="bottom_div">
 		<canvas id="score_list_canvas" width="960" height="540" style="z-index:0;"></canvas>
 	</div>
@@ -22,9 +28,55 @@
 
 	<img id="moving_card" height="200" width="134" style="position:absolute; z-index:1; left: 1000; top: 449; display: none;">
 
-	<script>
+<script>
+
+	// Game Settings
+	var GameSettings = document.getElementById('GameSettings');
+	var GameSettingsInput = document.getElementById('GameSettings-Input');
+	var GameSettingsBotGame = document.getElementById('GameSettings-botGame');
+    var GameSettings2Players = document.getElementById('GameSettings-2Players');
+    var GameSettings4Players = document.getElementById('GameSettings-4Players');
+	var connected = false;
+	var gamelength;
+	GameSettingsBotGame.onclick = function() {
+		gamelength = GameSettingsInput.value;
+		GameSettingsInput.value = "";
+		if(gamelength != 0) {
+			socket.emit('GameSettings', {bot:true, twop: false, fourp: false });
+			GameSettings.style.display = 'none';
+			bg.style.display = 'inline-block';
+			refresh();
+		}
+	}
+	GameSettings2Players.onclick = function() {
+		gamelength = GameSettingsInput.value;
+		GameSettingsInput.value = "";
+		if(gamelength != 0) {
+			socket.emit('GameSettings', {bot:false, twop: true, fourp: false });
+			GameSettings.style.display = 'none';
+			bg.style.display = 'inline-block';
+			refresh();
+		}
+	}
+	GameSettings4Players.onclick = function() {
+		gamelength = GameSettingsInput.value;
+		GameSettingsInput.value = "";
+		if(gamelength != 0) {
+			socket.emit('GameSettings', {bot:false, twop: false, fourp: true });
+			GameSettings.style.display = 'none';
+			bg.style.display = 'inline-block';
+			refresh();
+		}
+	}
+	
 
 	var socket = io();
+	var playerNum = 4
+	socket.on('playerNum', function(data){
+		playerNum = data.p;
+		console.log('player number is ' + playerNum );
+	});
+
 	var tuval = document.getElementById("cnTuval");
 	var ctx = tuval.getContext("2d");
 	var score_canvas = document.getElementById("score_list_canvas");
@@ -94,7 +146,7 @@
 	var back90 = new Image();
 	back90.src = "static/back90.png";
 
-	for(var i = 0; i < 4; i++) {
+	for(var i = 0; i < playerNum; i++) {
 		numCards[i] = 0;
 		score[i] = 0;
 		numberofCards[i] = 0;
@@ -190,7 +242,7 @@
 		var height = 200;
 		var width  = height*ratio;
 
-		for (var i = 0; i < 4; i++)
+		for (var i = 0; i < playerNum; i++)
 			if(CURRENT_LIST[i] != undefined)
 				CURRENT_LIST[i].draw();
 
@@ -225,7 +277,7 @@
 	var Next = function() {
 		do {
 			turn++;
-			turn = turn % 4;
+			turn = turn % playerNum;
 		}while(!CURRENT_LIST[turn]);
 		socket.emit('turnMsg', turn);
 		//console.log(turn);
@@ -297,7 +349,13 @@
 	}
 
 	var Deal = function(p,c, begin) {
-		if(c == begin + 16) {
+		var cardCut = 16
+		if(playerNum == 2)
+			cardCut = 8;
+		else if(playerNum == 3)
+			cardCut = 12;
+
+		if(c == begin + cardCut) {
 			//console.log("initial: "+initial);
 			if(initial)
 				putInitialCards(3);
@@ -311,13 +369,13 @@
 
 		refresh();
 		setTimeout(function() {
-			Deal((p+1)%4, c+1, begin);
+			Deal((p+1)%playerNum, c+1, begin);
 		}, 250);
 		
 	}
 
 	var Start = function() {
-		if(52-deckIndex < person*4) {
+		if(52-deckIndex < person*playerNum) {
 			initCards();
 			deckIndex = 0;
 		}
@@ -342,9 +400,18 @@
 //			ctx.fillText("Player "+turn+" wins!", WIDTH/2, HEIGHT/2);
 //		}
 
-		if(person == 4 && !start)
+		socket.on('timeEnd', function(data){
+			if(data == true && !start){
+				console.log('recieve');
+				gamelength--;
+				Start();
+			}
+		})
+		if(person == playerNum && !start){
+			gamelength--;
+			console.log('Gamelength' + gamelength);
 			Start();
-
+		}
 		refresh();
 	});
 
@@ -522,11 +589,23 @@
 			topID = data.id;
 		}
 		
-		if(end()) {
-			socket.emit('end', {bool:true});			
-			Start();
+		if(end() && gamelength != 0) {
+			gamelength--;
+			socket.emit('end', {bool:true});
+			setTimeout(function() {
+				Start();
+			}, 500);
+		}/*
+		else{
+			var topscore = 0;
+			for(var i=0;i<4;i++){
+				if(topscore < score[i]){
+					topscore = score[i];
+				}
+			}
+			setInterval(function(){ctx.fillText(topscore, WIDTH/2+200, HEIGHT/2+200); }, 10000);
 			
-		}
+		}*/
 		//console.log("deckIndex : "+deckIndex);
 		Next();		
 		refresh();
