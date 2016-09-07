@@ -58,11 +58,20 @@
 	var score = 0;
 	var turn = false;
 	var canPlay = false;
-
+	
+	
 	var cards = {};
 	var dialog;
+	
+		socket.on ('updateCard', function (msg) {
+			if (msg.id != -1)
+			ctx.drawImage(card_images[msg.id],435,500,210,313);
+			else{ 
+			update();
+			}
+		});
 
-	update = function() {
+	update = function() {		
 		var count = 0;
 		ctx.clearRect(0, 0, WIDTH, HEIGHT);
 		var offset = (WIDTH - stepSize*(cardLeft-1))/2;
@@ -80,8 +89,29 @@
 		if(turn)
 			ctx.fillText('Your Turn', 260, 400);
 		if(connected)
-			ctx.fillText("Table is full", 220, 700);
+			ctx.fillText("Table is full", 220, 700);		
 	}
+	
+	update2 = function() {		
+		var count = 0;
+		ctx.clearRect(0, 814, WIDTH, HEIGHT);
+		var offset = (WIDTH - stepSize*(cardLeft-1))/2;
+		var count = 0;
+		for(var i in cards) {
+			cards[i].draw(count++*stepSize + offset, 3*HEIGHT/7);
+		}
+		ctx.save();
+		ctx.font = '90px Arial';
+		ctx.fillStyle = 'white';
+		ctx.fillText(name, 55, 110);
+		ctx.textAlign = "end";
+		ctx.fillText("Score: "+score, WIDTH-25, 110);
+		ctx.restore();
+		if(turn)
+			ctx.fillText('Your Turn', 260, 400);
+		if(connected)
+			ctx.fillText("Table is full", 220, 700);		
+	}	
 
 	Card = function(id,num) {
 		var self = {
@@ -94,18 +124,24 @@
 		};
 		self.clicked = function() {
 			selected = self;
-			dialog = Dialog('Sure?');
+			dialog = Dialog('');
 			dialog.draw(WIDTH/2, HEIGHT/2);
 			dialogOn = true;
-		};
+			
+		};		
+		
 		self.draw = function(x, y) {
 			var ratio = 380/255;
 			self.width = 210;
 			self.height = self.width * ratio;
 			self.x = x-self.width/2;
 			self.y = y-self.height/2;
+			
 			console.log("id:"+self.id);
+			self.y = self.y+200
 			ctx.drawImage(card_images[self.id], self.x, self.y, self.width, self.height);
+			
+			
 		};
 		self.clickAction = function(x, y) {
 			if(!dialogOn
@@ -114,7 +150,7 @@
 			&& y > self.y
 			&& y < self.y+self.height
 			&& turn
-			&& canPlay)
+			&& canPlay)			
 				self.clicked();
 		};
 		cards[id] = self;
@@ -135,21 +171,33 @@
 				socket.emit('clicked',{id:selected.id, left:cardLeft});
 				turn = false;
 				delete cards[selected.id];
-			}
+				
+			
 			delete dialog;
 			dialogOn = false;
 			selected = undefined;
 			update();
+			}
+			
+			else{
+			delete dialog;
+			dialogOn = false;
+			selected = undefined;
+			update2();
+			}
+			
+			
 		};
-		self.draw = function(x, y) {
+		self.draw = function(x, y) {			
 			self.width = 270;
 			self.height = 150;
 			self.x = x-self.width/2;
 			self.y = y-self.height/2;
+			self.y = self.y+200;
 			ctx.fillStyle = (self.type != 'yes'?'#E91515':"#A1E631");
 			ctx.fillRect(self.x, self.y, self.width, self.height);
 			ctx.fillStyle = 'black';
-			ctx.fillText(self.type, x-(self.type == 'yes'?95:65), y+30);
+			//ctx.fillText(self.type, x-(self.type == 'yes'?95:65), y+30);
 		};
 		self.clickAction = function(x, y) {
 			if(x > self.x
@@ -159,6 +207,7 @@
 			&& dialogOn)
 				self.clicked();
 			};
+			
 		return self;
 	}
 
@@ -174,22 +223,30 @@
 		self.no = Button('no');
 		self.draw = function(x, y) {
 			dialogOn = true;
-			self.width = 800;
-			self.height = 800;
+			self.width = 0;
+			self.height = 0;
 			self.x = x-self.width/2;
 			self.y = y-self.height/2;
-			ctx.fillStyle = '#28527B'
+			self.y = self.y+200;
+			ctx.fillStyle = '#9fbfdf'
 			ctx.fillRect(self.x, self.y, self.width, self.height);
 			ctx.fillStyle = 'black';
-			ctx.fillText(q, x-170, y-150); //text
+			//ctx.fillText(q, x-170, y-50); //text
 			self.yes.draw(x-200, y+150);
 			self.no.draw(x+200, y+150);
+			
+	
 		};
 		self.clickAction = function(x, y) {
+			
 			dialog.yes.clickAction(x, y);
 			dialog.no.clickAction(x, y);
+			
+			
 		};
+		
 		return self;
+		
 	}
 
 	socket.on('newScore', function(data) {
@@ -209,13 +266,14 @@
 		turn = true;
 		update();
 	});
-
+	
 	canvas.onclick = function(e) {
 		var mouseX = e.offsetX;
 		var mouseY = e.offsetY;
-		for(var i in cards)
+				for(var i in cards)
 			cards[i].clickAction(mouseX, mouseY);
 		if(dialogOn)
 			dialog.clickAction(mouseX, mouseY);
 	};
+	
 </script>

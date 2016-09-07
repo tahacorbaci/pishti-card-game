@@ -15,7 +15,7 @@
 		#bottom_div	 { position:absolute; top:540; left:0; width:960; height:540; }
 		#canvas-wrap { position:absolute; top:0; left:960; } /* Make this a positioned parent */
 		#trans_div   { position:absolute; top:0; left:0; width:960; height:540; opacity: 0.1; }
-		#bg 				 { position:fixed; top:0; left:0; width:1920; height:1080;  background: url("static/green3.png") no-repeat;}
+		#bg 		 { position:fixed; top:0; left:0; width:1920; height:1080;  background: url("static/green3.png") no-repeat;}
 	</style>
 
 	<img id="center" height="200" width="134" style="position:absolute; z-index:1; left: 1385; top: 449; display: none;">
@@ -55,19 +55,6 @@
 	var numberofCards = new Array(52);
 	var cardInfo = [];
 	var mainscore = 0;
-	
-	var startpoint = [0, 0];
-	var endpoint = [1385, 449];
-	var temp_point = [0, 0];
-	var speed = 200;
-	var elapsed = 0.1;
-	var moving = false;
-	var show_top_card = true;
-	var pisti_flag = false;
-	
-	var shuffle = new Audio('static/cardShuffle.wav');
-	var playing = new Audio('static/cardPlace2.wav');
-	var win_sound = new Audio('static/TaDa.mp3');
 
 	var WIDTH = 960;
 	var HEIGHT = 1080;
@@ -128,7 +115,7 @@
 	topCard.src = "static/"+cards[19]+".png";	// ilk kard� ald�g�m i�in resmi koy
 	topID = cards[19];
 
-
+	
 
 	var Player = function(id,name,x,y) {
 		var p = {
@@ -143,12 +130,6 @@
 			var width  = height*ratio;
 			var stepSize = 120;
 			for(var i = 0; i < numCards[p.id]; i++) {
-				if(!start){
-					shuffle.play();
-					setTimeout(function() {
-						shuffle.play();
-					}, 3000);
-				}
 				if(p.id == 0 || p.id == 2) {
 					var offset = p.y - ((stepSize*(numCards[p.id]-1)) / 2);
 					ctx.drawImage(back90, p.x - height/2, i*stepSize+offset - width/2, height, width);
@@ -235,6 +216,8 @@
 			ctx.fillText("PISTI!!!", WIDTH/2, HEIGHT/2);
 			ctx.restore();
 		}
+		
+		socket.emit ('player move', {id:topID});
 
 //		ctx.restore();
 	}
@@ -247,12 +230,17 @@
 		socket.emit('turnMsg', turn);
 		//console.log(turn);
 	}
-	
+		
 	var putInitialCards = function(step) {
 		if(step <= 0) {
 			cardsCount++;
 			topCard.style.display = 'inline-block';
 			console.log(cards[deckIndex]);
+			
+			
+			
+		
+		
 			console.log(deckIndex);
 			console.log(" ");
 			if(cards[deckIndex] % 13 == 0)
@@ -263,10 +251,14 @@
 				mainscore += 3;
 			else if(cards[deckIndex] % 13 == 10)
 				mainscore += 1;
+				
+			
+			
 			deckIndex++;
 			initial = false;
 			drawTop = true;
 			refresh();
+			
 			return;
 		}
 		console.log(cards[deckIndex]);
@@ -293,16 +285,15 @@
 		}
 			//mainscore += 1;
 
-
+		
 
 		deckIndex++;
 		backCardCount++;
 		refresh();
-//		shuffle.play();
 
 		setTimeout(function() {
 			putInitialCards(step-1);
-		}, 140);
+		}, 250);
 	}
 
 	var Deal = function(p,c, begin) {
@@ -321,7 +312,8 @@
 		refresh();
 		setTimeout(function() {
 			Deal((p+1)%4, c+1, begin);
-		}, 150);
+		}, 250);
+		
 	}
 
 	var Start = function() {
@@ -363,6 +355,15 @@
 		return numCards[i] == 0;
 	}
 
+	var startpoint = [0, 0];
+	var endpoint = [1385, 449];
+	var temp_point = [0, 0];
+	var speed = 100;
+	var elapsed = 0.1;
+	var moving = false;
+	var show_top_card = true;
+	var pisti_flag = false;
+
 	var distance_calc = function(startpoint,endpoint){
 		return Math.sqrt((startpoint[0]-endpoint[0])*(startpoint[0]-endpoint[0])+(startpoint[1]-endpoint[1])*(startpoint[1]-endpoint[1]));
 	}
@@ -373,8 +374,10 @@
 	}
 
 	socket.on('cardPlayed', function(data) {
-		playing.play();
-
+	
+	
+	
+	
 		switch(turn){
 			case 0:
 				startpoint = [x[0]+WIDTH, y[0]-100];
@@ -401,6 +404,8 @@
 		temp_point[0] = startpoint[0];
 		temp_point[1] = startpoint[1];
 		show_top_card = true;
+		
+		
 
 		if(moving == true)
 		{
@@ -418,7 +423,6 @@
 					movingCard.style.left = endpoint[0];
 					movingCard.style.top = endpoint[1];
 					moving = false;
-//					playing.play();
 					topCard.src = "static/"+data.id+".png";
 					movingCard.style.display = 'none';
 					if(!show_top_card){
@@ -431,7 +435,6 @@
 					if(pisti_flag){
 						pisti = true;
 						refresh();
-						win_sound.play();
 						setTimeout(function() {
 							pisti = false;
 							pisti_flag = false;
@@ -518,15 +521,17 @@
 			//cardInfo[turn].push(data.id);
 			topID = data.id;
 		}
+		
 		if(end()) {
-			socket.emit('end', {bool:true});
-			shuffle.play();
-			setTimeout(function() {
-				Start();
-			}, 500);
+			socket.emit('end', {bool:true});			
+			Start();
+			
 		}
 		//console.log("deckIndex : "+deckIndex);
-		Next();
+		Next();		
 		refresh();
+		
+		
 	});
+	
 	</script>
