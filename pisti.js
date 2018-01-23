@@ -7,7 +7,7 @@ app.use('/static',express.static(__dirname+'/client/img/final'));
 var pathname;
  
 app.get('/hand',function(req,res){  
-    res.sendFile(__dirname+'/client/mustafa.html');
+    res.sendFile(__dirname+'/client/hand.html');
     pathname = url.parse(req.url).pathname; // pathname = '/MyApp' 
 });
  
@@ -17,7 +17,7 @@ app.get('/launcher',function(req,res){
 });
 
 app.get('/table',function(req,res){ 
-    res.sendFile(__dirname+'/client/zeynep.html');
+    res.sendFile(__dirname+'/client/table.html');
     pathname = url.parse(req.url).pathname; // pathname = '/MyApp'  
 });
  
